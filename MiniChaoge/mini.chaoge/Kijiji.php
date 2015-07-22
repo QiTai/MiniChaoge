@@ -1,18 +1,16 @@
 <?php
 
-error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);
+header("Content-type : text/html; charset = utf-8"); //------------
+error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);  //-----------
 
 class DataConnection {
 	private static $connection = null;
 
-	/*
-	 * connect to the database
-	 */
 	public static function getConnection() {
-		if (self::$connection == null) {
-			self::$connection = mysql_connect('localhost', 'root', '') or die(mysql_error());
+		if (self::$connection == null) {					//-------------------
+			self::$connection = mysql_connect('localhost','root','') or die(mysql_error());  //------------
 			mysql_select_db('chaoge') or die(mysql_error());
-			mysql_query('set names utf8') or die(mysql_error());
+			mysql_query('set names utf8') or die(mysql_error());	//-----names不是name;是utf8不是utf-8
 		}
 		return self::$connection;
 	}
@@ -21,72 +19,71 @@ class DataConnection {
 class Data {
 	public $key, $table, $columns;
 
-	public function init($options) {
-		$this->key = $options['key'];
-		$this->table = $options['table'];
-		$this->columns = $options['columns'];
+	public function init($option) {				//数据结构统一写init函数
+		$this->key 		= $option['key'];			//omit $this->key
+		$this->table 	= $option['table'];
+		$this->columns	= $option['columns'];
 	}
 
 	public function reset() {
 		foreach ($this->columns as $objCol => $dbCol) {
-			$this->$objCol = null;
+			$this->$objCol = null;			//---------------
 		}
 	}
 
-	public function load($id = null) {
+	public function load($id = null) {	//----------($id = null)
 		$key = $this->key;
-		if ($id == null) {
-			$id = $this->$key;  
-		}			
-		$sql = "select * from {$this->table} where {$this->columns[$key]} = $id";
-		// var_dump($sql);
+		if($id == null) {
+			$id = $this->$key;
+		}
+		$sql = "select * from {$this->table} where {$this->columns[$key]} = $id";	//--------
 		DataConnection::getConnection();
 		$rs = mysql_query($sql) or die(mysql_error());
-		$row = mysql_fetch_assoc($rs);
-		if ($row) {
-			foreach ($this->columns as $objCol => $dbCol) {
-				$this->$objCol = $row[$dbCol];
-			}
-			// var_dump($this->columns);
-			return $this;
-		} else {
-			return null;
-		}
+		$row = mysql_fetch_array($rs);
+		//-------------------------------------------------------------|
+		if ($row) {												//     |
+			foreach ($this->columns as $objCol => $dbCol) {	//     |
+				$this->$objCol = $row[$dbCol];					//     |
+			}													//     |
+			return $this;										//     |
+		} else {												//     |
+			return null;										//     |
+		}														//     |
+		//-------------------------------------------------------------|
 	}
 
 	public function find() {
-		$result = array();
+		$result = array();			//---------
 		$where = 'where 1=1 ';
-
 		foreach ($this->columns as $objCol => $dbCol) {
 			if ($this->$objCol) {
-				// var_dump($this);								//因为通过find()调用时，只有id是事先赋值完成的，所以where后面也只跟了id
 				$where .= " and $dbCol = {$this->$objCol}";
 			}
 		}
 		$sql = "select * from {$this->table} $where";
-		// var_dump($sql);
 		DataConnection::getConnection();
 		$rs = mysql_query($sql) or die(mysql_error());
+		//-------------------------------------------------------------
 		$row = mysql_fetch_assoc($rs);
 		while ($row) {
 			$o = clone $this;
 			foreach ($o->columns as $objCol => $dbCol) {
 				$o->$objCol = $row[$dbCol];
 			}
-			$result[] = $o;							//each element of $result only contain one sql find result
+			$result[] = $o;
+//			var_dump($o);
 			$row = mysql_fetch_assoc($rs);
 		}
-//		print_r($result);
 		return $result;
+		//-------------------------------------------------------------
 	}
 }
 
 class Tree extends Data {
-	public $pkey;
+	private $pkey;
 
-	public function init($options) {
-		parent::init($options);
+	public function init($options) {		//-----------不是__construct
+		parent::init($options);        		//----------数据结构统一写init()函数
 		$this->pkey = $options['pkey'];
 	}
 
@@ -94,15 +91,15 @@ class Tree extends Data {
 		$o = clone $this;
 		$o->reset();
 		$o->{$o->key} = $this->{$this->pkey};
-		return $o->load();
+		return $o->load();			//---------写成$o->load(); 父亲只有一个，精准定位，根据id定位
 	}
 
 	public function children() {
-	$o = clone $this;
-	$o->reset();
-	$o->{$o->pkey} = $this->{$this->key};
-	return $o->find();
-}
+		$o = clone $this;
+		$o->reset();
+		$o->{$o->pkey} = $this->{$this->key};
+		return $o->find();			//--------写成$o->load() 儿子有很多个，要find()，非精准定位
+	}
 
 	public function toRoot() {
 		$o = clone $this;
@@ -110,29 +107,30 @@ class Tree extends Data {
 			$result[] = $o;
 			$o = $o->parent();
 		} while ($o);
-		return array_reverse($result);
+		return array_reverse($result); 	//------omit array_reverse
 	}
 }
 
 class Category extends Tree {
+
 	public function __construct() {
 		$options = array(
 			'key' => 'id',
 			'pkey' => 'pid',
 			'table' => 'babel_node',
-			'columns' => array(
-			'id' => 'node_id',
-			'pid' => 'nod_pid',
-			'name' => 'nod_title'
+			'columns' => array(			//----字段
+				'id' => 'node_id',
+				'pid' => 'nod_pid',
+				'name' => 'nod_title'
 			)
 		);
 		parent::init($options);
 	}
 
 	public function ads() {
-		$a = new Ad();
-		$a->categoryId = $this->id;
-		return $a->find();
+		$o = new Ad();
+		$o->categoryId = $this->id;
+		return $o->find();				//categoryId为当前category的广告有很多，用find
 	}
 }
 
@@ -142,19 +140,19 @@ class Area extends Tree {
 			'key' => 'id',
 			'pkey' => 'pid',
 			'table' => 'babel_area',
-			'columns' => array(
+			'columns' => array(				//----字段
 				'id' => 'area_id',
 				'pid' => 'area_pid',
 				'name' => 'area_title'
 			)
 		);
-		parent::init($options);
+		parent::init($options);				//------
 	}
 
 	public function ads() {
-		$a = new Ad();
-		$a->areaId = $this->id;
-		return $a->find();
+		$o = new Ad();
+		$o->areaId = $this->id;
+		return $o->find();
 	}
 }
 
@@ -167,8 +165,8 @@ class Ad extends Data {
 			'table' => 'babel_topic',
 			'columns' => array(
 				'id' => 'tpc_id',
-				'categoryId' => 'tpc_pid',
 				'name' => 'tpc_title',
+				'categoryId' => 'tpc_pid',
 				'areaId' => 'tpc_area',
 				'userId' => 'tpc_uid',
 				'content' => 'tpc_content'
@@ -177,42 +175,42 @@ class Ad extends Data {
 		parent::init($options);
 	}
 
-	public function load($id = null) {
-		parent::load($id);
-		$this->category = new Category();
+	public function load($id = null) {		//---$id
+		parent::load($id);						//------
+		$this->category = new Category();		//this->
 		$this->category->id = $this->categoryId;
-		$this->area = new Area();
-		$this->area->id = $this->areaId;
 		$this->user = new User();
 		$this->user->id = $this->userId;
+		$this->area = new Area();
+		$this->area->id = $this->areaId;
 	}
 
 	public function comments() {
-		$a = new Comment();
-		$a->adId = $this->id;
-		return $a->find();
+		$o = new Comment();
+		$o->adId = $this->id;
+		return $o->find();					//---关于这个广告的comments有很多，所以find()
 	}
-
 }
 
 class User extends Data {
+
 	public function __construct() {
 		$options = array(
 			'key' => 'id',
 			'table' => 'babel_user',
-			'columns' => array(
+			'columns' => array(			//竟然因为columns少写了s导致出错
 				'id' => 'usr_id',
 				'email' => 'usr_email',
 				'name' => 'usr_nick'
 			)
-		); 
+		);
 		parent::init($options);
 	}
 
 	public function ads() {
-		$a = new Ad();
-		$a->userId = $this->id;
-		return $a->find();
+		$o = new Ad();
+		$o->userId = $this->id;
+		return $o->find();				//----------关于此人的广告多，用find()
 	}
 }
 
@@ -221,7 +219,7 @@ class Comment extends Data {
 		$options = array(
 			'key' => 'id',
 			'table' => 'babel_reply',
-			'columns' => array(
+			'columns' => array(			//竟然因为columns少写了s导致出错
 				'id' => 'rpl_id',
 				'userId' => 'rpl_post_usr_id',
 				'userNick' => 'rpl_post_nick',
@@ -233,4 +231,3 @@ class Comment extends Data {
 	}
 }
 
-?>
