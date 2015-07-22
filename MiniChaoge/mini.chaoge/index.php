@@ -1,11 +1,15 @@
 <?php
 
+header("Content-type: text/html; charset=utf-8");
+error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);
+
 require_once('Kijiji.php');
 
 $id = @$_GET['id'];
 $c = new Category();
 $c->id = $id ? $id : 21;
 $c->load();
+
 
 //print_r($c->children());
 foreach ($c->children() as $cc) {

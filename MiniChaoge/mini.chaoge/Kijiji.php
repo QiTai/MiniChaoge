@@ -1,7 +1,13 @@
 <?php
+
+error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);
+
 class DataConnection {
 	private static $connection = null;
 
+	/*
+	 * connect to the database
+	 */
 	public static function getConnection() {
 		if (self::$connection == null) {
 			self::$connection = mysql_connect('localhost', 'root', '') or die(mysql_error());
@@ -30,9 +36,10 @@ class Data {
 	public function load($id = null) {
 		$key = $this->key;
 		if ($id == null) {
-			$id = $this->$key;
-		}
+			$id = $this->$key;  
+		}			
 		$sql = "select * from {$this->table} where {$this->columns[$key]} = $id";
+		// var_dump($sql);
 		DataConnection::getConnection();
 		$rs = mysql_query($sql) or die(mysql_error());
 		$row = mysql_fetch_assoc($rs);
@@ -40,6 +47,7 @@ class Data {
 			foreach ($this->columns as $objCol => $dbCol) {
 				$this->$objCol = $row[$dbCol];
 			}
+			// var_dump($this->columns);
 			return $this;
 		} else {
 			return null;
@@ -49,12 +57,15 @@ class Data {
 	public function find() {
 		$result = array();
 		$where = 'where 1=1 ';
+
 		foreach ($this->columns as $objCol => $dbCol) {
 			if ($this->$objCol) {
+				// var_dump($this);								//因为通过find()调用时，只有id是事先赋值完成的，所以where后面也只跟了id
 				$where .= " and $dbCol = {$this->$objCol}";
 			}
 		}
 		$sql = "select * from {$this->table} $where";
+		// var_dump($sql);
 		DataConnection::getConnection();
 		$rs = mysql_query($sql) or die(mysql_error());
 		$row = mysql_fetch_assoc($rs);
@@ -63,7 +74,7 @@ class Data {
 			foreach ($o->columns as $objCol => $dbCol) {
 				$o->$objCol = $row[$dbCol];
 			}
-			$result[] = $o;
+			$result[] = $o;							//each element of $result only contain one sql find result
 			$row = mysql_fetch_assoc($rs);
 		}
 //		print_r($result);
@@ -87,11 +98,11 @@ class Tree extends Data {
 	}
 
 	public function children() {
-		$o = clone $this;
-		$o->reset();
-		$o->{$o->pkey} = $this->{$this->key};
-		return $o->find();
-	}
+	$o = clone $this;
+	$o->reset();
+	$o->{$o->pkey} = $this->{$this->key};
+	return $o->find();
+}
 
 	public function toRoot() {
 		$o = clone $this;
@@ -110,9 +121,9 @@ class Category extends Tree {
 			'pkey' => 'pid',
 			'table' => 'babel_node',
 			'columns' => array(
-				'id' => 'node_id',
-				'pid' => 'nod_pid',
-				'name' => 'nod_title'
+			'id' => 'node_id',
+			'pid' => 'nod_pid',
+			'name' => 'nod_title'
 			)
 		);
 		parent::init($options);
@@ -194,7 +205,7 @@ class User extends Data {
 				'email' => 'usr_email',
 				'name' => 'usr_nick'
 			)
-		);
+		); 
 		parent::init($options);
 	}
 
