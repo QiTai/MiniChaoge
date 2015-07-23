@@ -6,38 +6,36 @@
  * Time: 19:59
  */
 
+header("Content-type:text/html;charset = utf-8");
+error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);
+
 require_once("Kijiji.php");
 
 $id = $_GET['id'];
-$o = new Ad();
-$o->id = $id ? $id : 2001;
-$o->load();
+$c = new Ad();
+$c->id = $id ? $id : 2001;
+$c->load();
 
-print "<h1>{$o->name}</h1><p>publisher:<a href=user.php?id={$o->user->id}>{$o->user->load()->name}</a><p>";
+print "<h1>{$c->name}</h1><p>publisher:<a href=user.php?id={$c->user->id}>{$c->user->load()->name}</a><p>";
 
-if ($o->category->load()) {
-	foreach ($o->category->load()->toRoot() as $cc) {
+if ($c->category->load()) {
+	foreach ($c->category->load()->toRoot() as $cc) {
 		print "<a href=listing.php?id={$cc->id}>{$cc->name}</a>|";
 	}
 }
 
 print "<p>";
 
-if ($o->area->load()) {
-	foreach ($o->area->load()->toRoot() as $cc) {
+if ($c->area->load()) {
+	foreach ($c->area->load()->toRoot() as $cc) {
 		print "<a href=area.php?id={$cc->id}>{$cc->name}</a>|";
 	}
 }
 
 print "<p>";
 
-print "{$o->content}<p>";
+print "{$c->content}<p>";
 
-foreach ($o->comments() as $c) {
-	print "<li><a href=listing.php?id={$c->id}>{$c->name}</a>:{$c->content}<br>";
+foreach ($c->comments() as $cc) {
+	print "<li><a href=user.php?id={$cc->userId}>{$cc->userNick}</a>:{$cc->content}<br>";       //我写成了userName
 }
-
-
-
-
-
