@@ -6,17 +6,18 @@
  * Time: 19:59
  */
 
-header("Content-type:text/html;charset = utf-8");
+
+header("Content-type : text/html ; charset = utf-8");
 error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);
 
-require_once("Kijiji.php");
+require_once ("Kijiji.php");
 
 $id = $_GET['id'];
 $c = new Ad();
 $c->id = $id ? $id : 2001;
 $c->load();
 
-print "<h1>{$c->name}</h1><p>publisher:<a href=user.php?id={$c->user->id}>{$c->user->load()->name}</a><p>";
+print "<h1>{$c->name}</h1><p><b>publisher:<a href=user.php?id={$c->user->id}>{$c->user->load()->name}</a></b><p>";
 
 if ($c->category->load()) {
 	foreach ($c->category->load()->toRoot() as $cc) {
@@ -34,8 +35,8 @@ if ($c->area->load()) {
 
 print "<p>";
 
-print "{$c->content}<p>";
+print "$c->content<p>";
 
 foreach ($c->comments() as $cc) {
-	print "<li><a href=user.php?id={$cc->userId}>{$cc->userNick}</a>:{$cc->content}<br>";       //我写成了userName
+	print "<li><a href=user.php?id={$cc->userId}>{$cc->userNick}</a>:{$cc->content}<br>";
 }

@@ -6,7 +6,8 @@
  * Time: 19:59
  */
 
-header("Content-type:text/html;charset = utf-8");
+
+header("Content-type : text/html ; charset = utf-8");
 error_reporting(E_ALL ^ E_DEPRECATED ^ E_NOTICE);
 
 class DataConnection {
@@ -14,7 +15,7 @@ class DataConnection {
 
 	public static function getConnection() {
 		if (self::$connection == null) {
-			self::$connection = mysql_connect("localhost", "root","") or die(mysql_error());
+			self::$connection = mysql_connect("localhost", "root", "") or die(mysql_error());
 			mysql_select_db("chaoge") or die(mysql_error());
 			mysql_query("set names utf8") or die(mysql_error());
 		}
@@ -23,6 +24,7 @@ class DataConnection {
 }
 
 class Data {
+
 	public $key, $table, $columns;
 
 	public function init($options) {
@@ -37,8 +39,7 @@ class Data {
 		}
 	}
 
-	public function load($id = null) {				//每次都是在数据库这块出错，哎、、、
-//		echo "hello";
+	public function load($id = null) {
 		$key = $this->key;
 		if ($id == null) {
 			$id = $this->$key;
@@ -46,32 +47,30 @@ class Data {
 		$sql = "select * from {$this->table} where {$this->columns[$key]} = $id";
 //		var_dump($sql);
 		DataConnection::getConnection();
-		$rs = mysql_query($sql) or die(mysql_error());
-//		var_dump($rs);
-		$row = mysql_fetch_array($rs);										//竟然是我多加or die(mysql_error()),这里是没有mysql_error的
+		$rs = mysql_query($sql) or die(mysql_error());;
+		$row = mysql_fetch_array($rs);
 		if ($row) {
 			foreach ($this->columns as $objCol => $dbCol) {
 				$this->$objCol = $row[$dbCol];
 			}
 			return $this;
 		} else {
-
 			return null;
 		}
-		var_dump($this);
 	}
 
 	public function find() {
 		$result = array();
-		$where = 'where 1 =1 ';
+		$where = 'where 1 = 1 ';
 		foreach ($this->columns as $objCol => $dbCol) {
-			if ($this->$objCol)
-				$where .= " and {$dbCol} = {$this->$objCol}";
+			if ($this->$objCol) {
+				$where .= " and {$dbCol} = {$this->$objCol}";			//only bug: here I " and {$objCol} = {$this->$objCol}"; but with former experience, I know that database handling is the place where bug fills. So I var_dump($sql) and find it.
+			}
 		}
 		$sql = "select * from {$this->table} $where";
-		var_dump($sql);
+//		var_dump($sql);
 		DataConnection::getConnection();
-		$rs = mysql_query($sql)  or die(mysql_error());
+		$rs = mysql_query($sql) or die(mysql_error());
 		$row = mysql_fetch_array($rs);
 		while ($row) {
 			$o = clone $this;
@@ -79,13 +78,15 @@ class Data {
 				$o->$objCol = $row[$dbCol];
 			}
 			$result[] = $o;
-			$row = mysql_fetch_array($rs);
+			$row = mysql_fetch_array($rs);					
 		}
 		return $result;
 	}
 }
 
+
 class Tree extends Data {
+
 	public $pkey;
 
 	public function init($options) {
@@ -120,13 +121,13 @@ class Tree extends Data {
 class Category extends Tree {
 
 	public function __construct() {
-		$options = array(
+		$options =array(
 			'key' => 'id',
 			'pkey' => 'pid',
 			'table' => 'babel_node',
 			'columns' => array(
 				'id' => 'node_id',
-				'pid' => 'nod_pid',					//3个
+				'pid' => 'nod_pid',
 				'name' => 'nod_title'
 			)
 		);
@@ -134,21 +135,21 @@ class Category extends Tree {
 	}
 
 	public function ads() {
-		$a = new Ad();
-		$a->categoryId =$this->id;
-		return $a->find();
+		$o = new Ad();
+		$o->categoryId = $this->id;
+		return $o->find();
 	}
 }
 
-class Area extends Tree {								//这里是直接复制Category
+class Area extends Tree {
 	public function __construct() {
-		$options = array(
+		$options =array(
 			'key' => 'id',
 			'pkey' => 'pid',
 			'table' => 'babel_area',
 			'columns' => array(
 				'id' => 'area_id',
-				'pid' => 'area_pid',					//3个
+				'pid' => 'area_pid',
 				'name' => 'area_title'
 			)
 		);
@@ -156,25 +157,26 @@ class Area extends Tree {								//这里是直接复制Category
 	}
 
 	public function ads() {
-		$a = new Ad();
-		$a->areaId =$this->id;
-		return $a->find();
+		$o = new Ad();
+		$o->areaId = $this->id;
+		return $o->find();
 	}
 }
 
 class Ad extends Data {
-	public $user, $area, $category;
 
-	public function __construct() {						//我竟然在__construct()中带了参数
-		$options = array(
+	public $user, $category, $area;
+
+	public function  __construct() {
+		$options =array(
 			'key' => 'id',
 			'table' => 'babel_topic',
 			'columns' => array(
 				'id' => 'tpc_id',
 				'name' => 'tpc_title',
-				'content' => 'tpc_content',             //6个
-				'categoryId' => 'tpc_pid',
+				'content' => 'tpc_content',
 				'userId' => 'tpc_uid',
+				'categoryId' => 'tpc_pid',
 				'areaId' => 'tpc_area'
 			)
 		);
@@ -183,29 +185,29 @@ class Ad extends Data {
 
 	public function load($id = null) {
 		parent::load($id);
-		$this->category = new Category();
-		$this->category->id = $this->categoryId;
 		$this->user = new User();
 		$this->user->id = $this->userId;
 		$this->area = new Area();
 		$this->area->id = $this->areaId;
+		$this->category = new Category();
+		$this->category->id = $this->categoryId;
 	}
 
 	public function comments() {
-		$o = new Comment();
-		$o->adId = $this->id;
-		return $o->find();
+		$c = new Comment();
+		$c->adId = $this->id;
+		return $c->find();
 	}
 }
 
 class User extends Data {
-	public function __construct() {
-		$options = array(
+	public function  __construct() {
+		$options =array(
 			'key' => 'id',
 			'table' => 'babel_user',
 			'columns' => array(
 				'id' => 'usr_id',
-				'name' => 'usr_nick',									//3个
+				'name' => 'usr_nick',
 				'email' => 'usr_email'
 			)
 		);
@@ -213,24 +215,23 @@ class User extends Data {
 	}
 
 	public function ads() {
-		$a = new Ad();
-		$a->userId =$this->id;
-		return $a->find();
+		$o = new Ad();
+		$o->userId = $this->id;
+		return $o->find();
 	}
-
 }
 
 class Comment extends Data {
-	public function __construct() {
-		$options = array(
+	public function  __construct() {
+		$options =array(
 			'key' => 'id',
 			'table' => 'babel_reply',
 			'columns' => array(
 				'id' => 'rpl_id',
 				'content' => 'rpl_content',
-				'userId' => 'rpl_post_usr_id',
+				'adId' => 'rpl_tpc_id',
 				'userNick' => 'rpl_post_nick',
-				'adId' => 'rpl_tpc_id'													//5个columns元素
+				'userId' => 'rpl_post_usr_id'
 			)
 		);
 		parent::init($options);
